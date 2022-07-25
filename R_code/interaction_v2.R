@@ -8,8 +8,20 @@ library(ComplexHeatmap)
 
 # load data
 ## single cell data
-tnk <- readRDS("~/_Projects/Chow Nat Comm/data/tnk_FZ02.RDS")
-tum <- readRDS("~/_Projects/Chow Nat Comm/data/tum_FZ02.RDS")
+#tnk <- readRDS("~/_Projects/Chow Nat Comm/data/tnk_FZ02.RDS")
+#tum <- readRDS("~/_Projects/Chow Nat Comm/data/tum_FZ02.RDS")
+sce <- SingleCellExperiment()
+for(file_ in list.files("~/_Projects/Chow Nat Comm/data/sce_final", full.names = T)){
+  if(nrow(sce) == 0){
+    sce <- readRDS(file_)
+  } else {
+    sce <- cbind(sce, readRDS(file_))
+  }
+}
+
+tnk <- sce[, sce$class == "tnk"]
+tum <- sce[, sce$class == "tum"]
+
 ## ligand target gene data
 ltm <- readRDS(url("https://zenodo.org/record/3260758/files/ligand_target_matrix.rds"))
 # saveRDS(ltm, "ltm.rds")

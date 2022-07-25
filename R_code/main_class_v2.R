@@ -31,22 +31,22 @@ sce[, colnames(nim)]$class <- nim$class
 tnk <- sce[, sce$class == "tnk"]
 
 set.seed(415); tnk <- runUMAP(tnk)
-set.seed(415); tnk <- runTSNE(tnk)
 
 hc <- hclust(dist(reducedDim(tnk, "UMAP")))
 tnk$hc_14 <- factor(cutree(hc, 14))
 
 #saveRDS(tnk, "~/_Projects/Chow Nat Comm/data/tnk_exp.RDS")
+#saveRDS(reducedDim(tnk, "UMAP"), "~/_Projects/Chow Nat Comm/data/tnk_UMAP.RDS")
 
 mye <- sce[, sce$class == "mye"]
 
 set.seed(415); mye <- runUMAP(mye)
-set.seed(415); mye <- runTSNE(mye)
 
 hc <- hclust(dist(reducedDim(mye, "UMAP")))
 mye$hc_16 <- factor(cutree(hc, 16))
 
 #saveRDS(mye, "~/_Projects/Chow Nat Comm/data/mye_exp.RDS")
+#saveRDS(reducedDim(mye, "UMAP"), "~/_Projects/Chow Nat Comm/data/mye_UMAP.RDS")
 
 for(i in c("b_c", "tum", "mst", "ves")){
   sce_ <- sce[, sce$class == i]

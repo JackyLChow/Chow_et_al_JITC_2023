@@ -69,6 +69,18 @@ tnk$subclass_fine <- pt$subclass_fine
 # saveRDS(tnk, "~/_Projects/Chow Nat Comm/data/tnk_FZ02.RDS")
 # tnk <- readRDS("~/_Projects/Chow Nat Comm/data/tnk_FZ02.RDS")
 
+sce <- SingleCellExperiment()
+for(file_ in list.files("~/_Projects/Chow Nat Comm/data/sce_final", full.names = T)){
+  if(nrow(sce) == 0){
+    sce <- readRDS(file_)
+  } else {
+    sce <- cbind(sce, readRDS(file_))
+  }
+}
+
+tnk <- sce[, sce$class == "tnk"]
+reducedDim(tnk, "UMAP") <- readRDS("~/_Projects/Chow Nat Comm/data/tnk_UMAP.RDS")
+
 # generate plot data.frame using TSNE coordinates
 pt <- cbind(x = reducedDim(tnk, "TSNE")[, 1],
             y = reducedDim(tnk, "TSNE")[, 2],

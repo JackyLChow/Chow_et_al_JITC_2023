@@ -20,8 +20,19 @@ library(fgsea)
 library(org.Hs.eg.db)
 
 # load data
-tum <- readRDS("~/_Projects/Chow Nat Comm/data/tum_FZ02.RDS")
-all <- readRDS("~/_Projects/Chow Nat Comm/data/sce_classed_FZ02.RDS")
+#tum <- readRDS("~/_Projects/Chow Nat Comm/data/tum_FZ02.RDS")
+#all <- readRDS("~/_Projects/Chow Nat Comm/data/sce_classed_FZ02.RDS")
+
+all <- SingleCellExperiment()
+for(file_ in list.files("~/_Projects/Chow Nat Comm/data/sce_final", full.names = T)){
+  if(nrow(sce) == 0){
+    sce <- readRDS(file_)
+  } else {
+    sce <- cbind(sce, readRDS(file_))
+  }
+}
+
+tum <- all[, all$subclass == "tum"]
 
 # load human gene labeling database
 hs <- org.Hs.eg.db

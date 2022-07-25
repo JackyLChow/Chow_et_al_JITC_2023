@@ -24,7 +24,7 @@ a_c[colnames(tnk), ]$subclass <- tnk$subclass
 a_c[colnames(tnk), ]$subclass_fine <- tnk$subclass_fine
 
 # cell x sample table
-write.csv(table(tnk$subclass_fine, tnk$sample), "TableS2_cellxsample_tnk.csv")
+#write.csv(table(tnk$subclass_fine, tnk$sample), "TableS2_cellxsample_tnk.csv")
 
 rm(tnk) # clean up
 
@@ -34,14 +34,47 @@ a_c[colnames(mye), ]$subclass <- mye$subclass
 a_c[colnames(mye), ]$subclass_fine <- mye$subclass_fine
 
 # cell x sample table
-write.csv(table(mye$subclass_fine, mye$sample), "TableS3_cellxsample_mye.csv")
+#write.csv(table(mye$subclass_fine, mye$sample), "TableS3_cellxsample_mye.csv")
 
 rm(mye) # clean up
 
 # inherit b_c, ves, tum, and mst from class
 a_c[a_c$class %in% c("b_c", "ves", "tum", "mst"), ]$subclass <- a_c[a_c$class %in% c("b_c", "ves", "tum", "mst"), ]$class
+a_c[a_c$class %in% c("b_c", "ves", "tum", "mst"), ]$subclass_fine <- a_c[a_c$class %in% c("b_c", "ves", "tum", "mst"), ]$class
 
 a_c$subclass_main <- substr(a_c$subclass, 1, 3)
+
+# add annotation to sce
+sce$subclass <- a_c$subclass
+sce$subclass_main <- a_c$subclass_main
+sce$subclass_fine <- a_c$subclass_fine
+
+# save
+#saveRDS(sce, "~/_Projects/Chow Nat Comm/data/sce_final.RDS")
+
+# break up for upload
+for(brk in 1:ceiling(ncol(sce)/8000)){
+  brk_min_ <- 1 + (8000 * (brk - 1))
+  brk_max_ <- 8000 + (8000 * (brk - 1))
+  if(brk_max_ < ncol(sce)){
+    sce_ <- sce[, brk_min_:brk_max_]
+    saveRDS(sce_, paste0("~/_Projects/Chow Nat Comm/data/sce_final/sce_final_chunk_", brk, ".RDS"))
+  } else {
+    sce_ <- sce[, brk_min_:ncol(sce)]
+    saveRDS(sce_, paste0("~/_Projects/Chow Nat Comm/data/sce_final/sce_final_chunk_", brk, ".RDS"))
+  }
+  rm(sce_, brk) #clean up
+}
+
+# final, fully annotated sce, contains TSNE and UMAP calculated for all cells
+sce <- SingleCellExperiment()
+for(file_ in list.files("~/_Projects/Chow Nat Comm/data/sce_final", full.names = T)){
+  if(nrow(sce) == 0){
+    sce <- readRDS(file_)
+  } else {
+    sce <- cbind(sce, readRDS(file_))
+  }
+}
 
 # cell x sample table
 write.csv(table(a_c$subclass_main, a_c$sample), "TableS1_cellxsample.csv")
@@ -57,8 +90,21 @@ a_c <- cbind(a_c,
                                            "CD68", "HLA-DRA",
                                            "CLEC9A", "CLEC10A", "FCER1A",
                                            "CD19", "MS4A1",
-                                           "CA9", "NAT8"
-             ), ])))
+                                           "CA9", "NAT8"), ])))
+
+a_c <- data.frame(colData(sce),
+                  data.frame(t(logcounts(sce)[c("PTPRC",
+                                                "CD3D", "CD3E", "CD3G",
+                                                "CD8A", "CD8B",
+                                                "CD4",
+                                                "NCAM1", "FCGR3A", "NKG7",
+                                                "S100A8", "S100A9",
+                                                "CD68", "HLA-DRA",
+                                                "CLEC9A", "CLEC10A", "FCER1A",
+                                                "CD19", "MS4A1",
+                                                "CA9", "NAT8"), ])),
+                  
+                  reducedDim(sce, "TSNE"))
 
 # plot TSNE and small multiples
 png("Fig1_tsne.png", width = 1290, height = 1290, res = 300)
@@ -255,7 +301,7 @@ exp_lgd <- Legend(col_fun = circlize::colorRamp2(seq(0, 5, 0.5),
 draw(exp_lgd)
 dev.off()
 
-sce$subclass.main <- substr(a_c$subclass, 1, 3) # apply subclasses
+sce$subclass_main <- substr(a_c$subclass, 1, 3) # apply subclasses
 sce$subclass.fine <- a_c$subclass 
 
 # plot classifying heatmap
@@ -273,8 +319,8 @@ sub <- sce[c("PTPRC",
              "PECAM1", "CD34"), ]
 
 heat_counts <- c()
-for(x in sort(unique(sce$subclass.main))){
-  a <- logcounts(sub)[, which(sub$subclass.main == x)]
+for(x in sort(unique(sce$subclass_main))){
+  a <- logcounts(sub)[, which(sub$subclass_main == x)]
   a <- cbind(rowMeans(a))
   colnames(a) <- x
   heat_counts <- cbind(heat_counts, a)
@@ -332,8 +378,8 @@ dev.off()
 rm(col_ann, heat_counts, col_fun, x, a)
 
 # class.main composition
-tab <- data.frame(table(subclass.main = sce$subclass.main, treatment = sce$treatment))
-tab$subclass.main <- factor(tab$subclass.main,
+tab <- data.frame(table(subclass_main = sce$subclass_main, treatment = sce$treatment))
+tab$subclass_main <- factor(tab$subclass_main,
                             levels = c("cd4", "cd8", "n_k", "nkt",
                                        "mon", "mac", "d_c",
                                        "mst",
@@ -341,7 +387,7 @@ tab$subclass.main <- factor(tab$subclass.main,
                                        "tum", "ves"))
 
 png("SFig1_cc.png", width = 950, height = 1400, res = 300)
-ggplot(tab, aes(fill = treatment, y = Freq, x = subclass.main)) +
+ggplot(tab, aes(fill = treatment, y = Freq, x = subclass_main)) +
   geom_bar(position = "fill", stat = "identity", color = "black") +
   scale_fill_manual(values = c("#1e88e5", "#d81b60")) +
   scale_y_continuous(expand = c(0,0)) +
@@ -371,8 +417,8 @@ ggplot(tab, aes(fill = treatment, y = Freq, x = subclass.main)) +
 dev.off()
 
 # treatment group composition
-tab <- data.frame(table(subclass.main = sce$subclass.main, treatment = sce$treatment))
-tab$subclass.main <- factor(tab$subclass.main,
+tab <- data.frame(table(subclass_main = sce$subclass_main, treatment = sce$treatment))
+tab$subclass_main <- factor(tab$subclass_main,
                                levels = c("cd4", "cd8", "n_k", "nkt",
                                           "mon", "mac", "d_c",
                                           "mst",
@@ -380,7 +426,7 @@ tab$subclass.main <- factor(tab$subclass.main,
                                           "tum", "ves"))
 
 png("SFig1_tc.png", width = 600, height = 1450, res = 300)
-ggplot(tab, aes(fill = subclass.main, y = Freq, x = treatment)) +
+ggplot(tab, aes(fill = subclass_main, y = Freq, x = treatment)) +
   geom_bar(position = "fill", stat = "identity", color = "black") +
   scale_fill_manual(breaks = c("cd4", "cd8", "n_k", "nkt",
                                 "mon", "mac", "d_c",

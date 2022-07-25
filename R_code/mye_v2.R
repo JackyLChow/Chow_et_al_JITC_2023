@@ -77,6 +77,18 @@ mye$subclass_fine <- pt$subclass_fine
 # saveRDS(mye, "~/_Projects/Chow Nat Comm/data/mye_FZ02.RDS")
 # mye <- readRDS("~/_Projects/Chow Nat Comm/data/mye_FZ02.RDS")
 
+sce <- SingleCellExperiment()
+for(file_ in list.files("~/_Projects/Chow Nat Comm/data/sce_final", full.names = T)){
+  if(nrow(sce) == 0){
+    sce <- readRDS(file_)
+  } else {
+    sce <- cbind(sce, readRDS(file_))
+  }
+}
+
+mye <- sce[, sce$class == "mye"]
+reducedDim(mye, "UMAP") <- readRDS("~/_Projects/Chow Nat Comm/data/mye_UMAP.RDS")
+
 sc_col <- colorRampPalette(c("#e4f9f5",
                              "#11999e",
                              "#005792",
