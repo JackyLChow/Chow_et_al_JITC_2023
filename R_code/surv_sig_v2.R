@@ -19,7 +19,7 @@ GDCdownload(query = query_TCGA) # download data of interest
 kirc_tcga <- GDCprepare(query_TCGA) # unpack data
 rm(query_TCGA) # clean up
 
-saveRDS(kirc_tcga, "~/_Projects/Chow Nat Comm/tcga/kirc_tcga.RDS") # freeze 2022_0613
+saveRDS(kirc_tcga, "~/_Projects/Chow Nat Comm/tcga/kirc_tcga.RDS") # freeze 2023_0301
 tcga_data <- readRDS("~/_Projects/Chow Nat Comm/data/tcga/kirc_tcga.RDS")
 
 # multi-variate all stages
@@ -98,7 +98,7 @@ trail <- rowSums(trail)
 trail <- rank(trail)
 trail <- trail/max(trail)
 clin_df$trail <- trail
-clin_df$trail.rank <- ifelse(trail < 0.30, "low", "hi")
+clin_df$trail.rank <- factor(ifelse(trail < 0.30, "low", "hi"), levels = c("low", "hi"))
 
 # IFNG score, scale counts, sum counts, rank
 ifng <- assay(clin)[rowRanges(clin)$gene_name %in% c("IFNG", "IFNGR1"), ]
@@ -118,7 +118,7 @@ ifng <- rowSums(ifng)
 ifng <- rank(ifng)
 ifng <- ifng/max(ifng)
 clin_df$ifng <- ifng
-clin_df$ifng.rank <- ifelse(ifng < 0.30, "low", "hi")
+clin_df$ifng.rank <- factor(ifelse(ifng < 0.30, "low", "hi"), levels = c("low", "hi"))
 
 # TRAIL IFNG double
 clin_df$trail_ifng_hi <- clin_df$trail.rank == "hi" & clin_df$ifng.rank == "hi"
@@ -164,6 +164,9 @@ ggsurvplot(survfit(Surv(overall_survival, deceased) ~ IFNG, data = clin_df),
   guides(colour = guide_legend(nrow = 2))
 dev.off()
 
+coxph(Surv(overall_survival, deceased) ~ IFNG, data = clin_df) %>% 
+  tbl_regression(exp = TRUE)
+
 # IFNG receptor
 png("SFig_surv_ifngr.png", width = 500, height = 750, res = 300)
 ggsurvplot(survfit(Surv(overall_survival, deceased) ~ IFNGR1, data = clin_df),
@@ -192,6 +195,7 @@ ggsurvplot(survfit(Surv(overall_survival, deceased) ~ ifng.rank, data = clin_df)
            pval.size = 2.75,
            pval = T)
 dev.off()
+tbl_regression(coxph(Surv(overall_survival, deceased) ~ ifng.rank, data = clin_df), exp = T)
 
 # TRAIL ligand
 png("SFig_surv_traill.png", width = 500, height = 750, res = 300)
@@ -237,6 +241,7 @@ ggsurvplot(survfit(Surv(overall_survival, deceased) ~ trail.rank, data = clin_df
            pval.size = 2.75,
            pval = T)
 dev.off()
+tbl_regression(coxph(Surv(overall_survival, deceased) ~ trail.rank, data = clin_df), exp = T)
 
 # IFNG/R TRAIL/R score
 png("SFig_surv_ifng_trail.png", width = 1200, height = 750, res = 300)
@@ -257,6 +262,8 @@ ggsurvplot(survfit(Surv(overall_survival, deceased) ~ ifng.rank + trail.rank,
            pval = T)
 dev.off()
 
+tbl_regression(coxph(Surv(overall_survival, deceased) ~ ifng.rank + trail.rank, data = clin_df), exp = T)
+
 # IFNG/R TRAIL/R double hi
 png("Fig6_surv_dub.png", width = 1000, height = 750, res = 300)
 ggsurvplot(survfit(Surv(overall_survival, deceased) ~ trail.rank == "hi" & ifng.rank == "hi", data = clin_df),
@@ -271,6 +278,8 @@ ggsurvplot(survfit(Surv(overall_survival, deceased) ~ trail.rank == "hi" & ifng.
            pval.size = 2.75,
            pval = T)
 dev.off()
+
+tbl_regression(coxph(Surv(overall_survival, deceased) ~ trail.rank == "hi" & ifng.rank == "hi", data = clin_df), exp = T)
 
 lgd <- Legend(labels = c("IFNG/R TRAIL/R hi", "other"),
                 title = "Strata",
